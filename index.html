@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Understudy: a home rehab robot that learns assist-as-needed therapy from the therapist's own hands.">
+<title>Understudy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: a clinical motion-lab notebook. Graph-paper grounds, a live arm on the opening screen, single column of evidence below. */
+:root {
+  --bg: #f1f4f6; --surface: #ffffff; --ink: #0e1a24; --muted: #4a5866; --line: #d5dde3;
+  --accent: #2f4cf0; --force: #d9621f; --accent-soft: #e3e8fe;
+  --sim-grid: rgba(14,26,36,.07); --sim-path: #2f4cf0; --sim-hand: #0e1a24; --sim-arm: #9aa7b3; --sim-force: #d9621f; --sim-text: #4a5866;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1218; --surface: #121c24; --ink: #e6edf2; --muted: #9aa9b6; --line: #24323d;
+  --accent: #7d93ff; --force: #f08a4b; --accent-soft: #1b2550;
+  --sim-grid: rgba(230,237,242,.07); --sim-path: #7d93ff; --sim-hand: #e6edf2; --sim-arm: #5b6b78; --sim-force: #f08a4b; --sim-text: #9aa9b6;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b1218; --surface: #121c24; --ink: #e6edf2; --muted: #9aa9b6; --line: #24323d;
+  --accent: #7d93ff; --force: #f08a4b; --accent-soft: #1b2550;
+  --sim-grid: rgba(230,237,242,.07); --sim-path: #7d93ff; --sim-hand: #e6edf2; --sim-arm: #5b6b78; --sim-force: #f08a4b; --sim-text: #9aa9b6;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); line-height: 1.08; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { padding-block: 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mark { font-family: var(--display); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+.mark i { width: 14px; height: 14px; border-radius: 50%; background: var(--force); box-shadow: 18px 0 0 -2px var(--accent); margin-right: 18px; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 40px; align-items: center; padding-block: 24px 56px; }
+.hero h1 { font-size: clamp(2.4rem, 5.4vw, 4.2rem); font-weight: 700; letter-spacing: -0.025em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { margin-top: 20px; font-size: 1.12rem; color: var(--muted); max-width: 34em; }
+.track { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { font-family: var(--mono); font-size: .75rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); }
+
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 0; }
+.lab canvas { display: block; width: 100%; aspect-ratio: 16 / 10; cursor: crosshair; }
+.lab .bar { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); }
+.lab .bar .grow { flex: 1 1 180px; min-width: 0; }
+.lab label { font-size: .85rem; color: var(--muted); display: block; }
+.lab input[type=range] { width: 100%; accent-color: var(--accent); }
+.readout { display: flex; gap: 18px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .85rem; }
+.readout b { display: block; font-size: 1.25rem; font-weight: 500; color: var(--ink); }
+.readout .f b { color: var(--force); }
+.btn { font: 500 .85rem var(--body); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.lab .hint { padding: 0 16px 14px; font-size: .82rem; color: var(--muted); }
+.legend { display: inline-flex; gap: 14px; flex-wrap: wrap; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+.legend .p { color: var(--accent); } .legend .h { color: var(--ink); } .legend .fz { color: var(--force); }
+
+section.band { padding-block: 64px; border-top: 1px solid var(--line); }
+.sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px; margin-bottom: 36px; }
+.sec-head p { color: var(--muted); max-width: 40em; }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.stat { border-top: 2px solid var(--ink); padding-top: 14px; }
+.stat .n { font-family: var(--display); font-size: clamp(2.4rem, 5vw, 3.4rem); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .n small { font-size: .45em; font-weight: 500; color: var(--muted); }
+.stat p { margin-top: 10px; color: var(--muted); font-size: .95rem; }
+.stat cite { font-style: normal; font-family: var(--mono); font-size: .72rem; color: var(--muted); display: block; margin-top: 8px; }
+
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.step { padding: 22px 20px; border-left: 1px solid var(--line); min-width: 0; }
+.step:first-child { border-left: 0; }
+.step .k { font-family: var(--mono); color: var(--accent); font-size: .8rem; }
+.step h3 { margin: 8px 0; }
+.step p { color: var(--muted); font-size: .93rem; }
+.step.home .k { color: var(--force); }
+
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; }
+.item h3 { margin-bottom: 6px; }
+.item p { color: var(--muted); }
+
+.money { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 40px; align-items: start; }
+.money .body p + p { margin-top: 14px; }
+.flow { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; font-size: .92rem; }
+.flow .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.flow .row:last-child { border-bottom: 0; }
+.flow .row span:last-child { font-family: var(--mono); color: var(--muted); text-align: right; }
+
+.plan { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .93rem; min-width: 560px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+tfoot td { font-weight: 600; border-bottom: 0; }
+
+.video { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.video video { display: block; width: 100%; aspect-ratio: 16/9; background: #000; }
+
+.sources { font-size: .85rem; color: var(--muted); }
+.sources ol { padding-left: 1.2em; margin: 12px 0 0; display: grid; gap: 6px; }
+footer { padding-block: 40px 56px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); }
+
+@media (max-width: 860px) {
+  .hero, .sec-head, .money { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step:nth-child(3) { border-left: 0; }
+  .step:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .stat-row, .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step { border-left: 0; border-top: 1px solid var(--line); }
+  .step:first-child { border-top: 0; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="mark"><i aria-hidden="true"></i>Understudy</div>
+    <div class="label">Build @ Deerfield · Robotics &amp; Movement</div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>A rehab robot that learns therapy from <em>the therapist's own hands.</em></h1>
+      <p class="lede">After a stroke, the arm needs hundreds of guided repetitions a day. A therapy session delivers about 30. Understudy records how a therapist assists a patient, learns that technique, and repeats it at home, helping only as much as the patient needs.</p>
+      <div class="track"><span class="chip">assistive mobility</span><span class="chip">imitation learning</span><span class="chip">home rehab</span><span class="chip">stroke</span></div>
+    </div>
+    <div class="lab" aria-label="Interactive teach and replay simulation">
+      <canvas id="sim" role="img" aria-label="A simulated arm following a therapist-demonstrated reaching path, with an orange arrow showing robot assistance"></canvas>
+      <div class="bar">
+        <div class="grow">
+          <label for="strength">Simulated patient arm strength: <span id="sv">35%</span></label>
+          <input id="strength" type="range" min="10" max="100" value="35">
+        </div>
+        <button class="btn" id="assist" aria-pressed="true">Robot assist on</button>
+        <div class="readout">
+          <div class="f">Robot share<b id="share">0%</b></div>
+          <div>Path error<b id="err">0.0 cm</b></div>
+        </div>
+      </div>
+      <p class="hint"><span class="legend"><span class="p">therapist demonstration</span><span class="h">patient's hand</span><span class="fz">robot assist</span></span><br>Drag across the grid to teach a new motion. Turn assist off to see a weak arm fall short. This is a physics simulation of the control idea, not patient data.</p>
+    </div>
+  </div>
+</div>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">The problem</div><h2>Recovery needs dose. The system can't deliver it.</h2></div>
+    <p>Relearning movement after a stroke depends on high-volume, task-specific practice. Hands-on therapy is the bottleneck: a therapist can only guide one arm at a time, and outpatient visits end long before recovery does.</p>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><div class="n">32</div><p>Average arm repetitions per stroke therapy session, across 312 observed sessions. Recovery is thought to need hundreds.</p><cite>Lang et al., Arch Phys Med Rehabil, 2009</cite></div>
+    <div class="stat"><div class="n">~795k</div><p>Strokes in the US every year. Most survivors are left with arm or hand weakness, and few regain full use.</p><cite>American Heart Association</cite></div>
+    <div class="stat"><div class="n">€50k<small>+</small></div><p>Purchase cost of a clinical upper-limb rehab robot in published cost analyses. They stay in clinics and replay fixed paths.</p><cite>Masiero et al., NeReBot cost study</cite></div>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">How it works</div><h2>Teach once in clinic. Practice hundreds of times at home.</h2></div>
+    <p>The robot attaches at the forearm and is light and backdrivable, so a therapist can move it as easily as the patient's own arm. Their hands become the training data.</p>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="k">1 · clinic</div><h3>Teach</h3><p>The therapist guides the patient's arm through an exercise. The robot records position and the force the therapist applied, at every point.</p></div>
+    <div class="step"><div class="k">2 · overnight</div><h3>Learn</h3><p>An imitation-learning policy (action-chunking or diffusion) trains on a few dozen demonstrations. It learns when this therapist helps and when they let go.</p></div>
+    <div class="step home"><div class="k">3 · home</div><h3>Replay</h3><p>The patient practices daily. The robot assists only when the hand drifts off the taught path, so the patient does as much of the work as they can.</p></div>
+    <div class="step home"><div class="k">4 · remote</div><h3>Supervise</h3><p>Assist force falling over weeks is a direct recovery measure. The therapist reviews it remotely and re-teaches when the plan changes.</p></div>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">Why now</div><h2>Past rehab robots failed on cost and rigidity. Both have changed.</h2></div>
+    <p>Earlier systems needed industrial hardware and hand-coded trajectories. The pieces now exist to make one cheap enough for a home and adaptive enough to be worth using.</p>
+  </div>
+  <div class="grid2">
+    <div class="item"><h3>Hardware fell by an order of magnitude</h3><p>Open-source arms built from hobby servos now run modern robot-learning stacks. A rehab-grade version with stronger actuators and a force-sensing cuff is a parts list in the low thousands of dollars.</p></div>
+    <div class="item"><h3>Robots learn from a few dozen demonstrations</h3><p>Since 2023, imitation learning has gone from research to routine, with open toolkits that train useful policies from tens of human demonstrations. Therapists already teach by demonstration.</p></div>
+    <div class="item"><h3>Payers already reimburse supervised home therapy</h3><p>Medicare's remote therapeutic monitoring codes pay clinics to supervise patients' home exercise, and the 2026 fee schedule added shorter-duration codes. The billing rails exist; the device that makes the time worth billing doesn't.</p></div>
+    <div class="item"><h3>Therapist time is the scarce resource</h3><p>Rehab staffing shortages mean fewer visits per patient. A tool that lets one therapist supervise many patients' daily practice addresses the constraint directly.</p></div>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="money">
+    <div class="body">
+      <div class="label">Business model</div>
+      <h2 style="margin:8px 0 18px">Lease to clinics. Paid for by work they can already bill.</h2>
+      <p>Our customer is the outpatient rehab clinic or home-health agency, not the patient. Clinics lease Understudy units monthly and send them home with patients after discharge. Each unit lets a therapist keep treating a patient between and after visits, and that supervision is billable.</p>
+      <p>The long-term asset is the data. Every taught session pairs an expert's hands-on technique with a patient's recovery curve, a dataset that does not exist anywhere today. It lets us train a shared rehab policy so every clinic starts from the best technique, and gives payers an objective measure of recovery to justify coverage.</p>
+    </div>
+    <div class="flow" aria-label="How money moves">
+      <div class="row"><span>Clinic leases unit</span><span>monthly fee per robot</span></div>
+      <div class="row"><span>Patient practices at home</span><span>daily sessions</span></div>
+      <div class="row"><span>Therapist reviews data, re-teaches</span><span>billable remote monitoring</span></div>
+      <div class="row"><span>Device cost vs. legacy robots</span><span>thousands, not tens of thousands</span></div>
+      <div class="row"><span>Regulatory path</span><span>Class II, 510(k) with rehab-robot predicates</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">Five weeks, $10,000</div><h2>What we will build and test in the program</h2></div>
+    <p>The goal by Demo Day: a working teach-and-replay prototype that a judge can strap into and feel assist like a therapist, with numbers comparing it to a fixed-path robot.</p>
+  </div>
+  <div class="plan">
+    <table>
+      <thead><tr><th>Week</th><th>Build</th><th>Done when</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Assemble a backdrivable arm with a force/torque sensor and padded forearm cuff. Torque limits and hardware e-stop.</td><td>Arm moves freely by hand and logs force at 100 Hz</td></tr>
+        <tr><td>2</td><td>Teach mode: record hand-guided demonstrations. Volunteers wear a weighted, motion-limiting brace to simulate weakness.</td><td>50+ recorded demonstrations of an assisted reach</td></tr>
+        <tr><td>3</td><td>Train an imitation-learning policy that outputs assistance, not just position.</td><td>Policy reproduces the demonstrated assist profile</td></tr>
+        <tr><td>4</td><td>Assist-as-needed replay. Compare against a fixed-trajectory baseline.</td><td>Lower assist share at equal path accuracy</td></tr>
+        <tr><td>5</td><td>Therapist dashboard; get feedback from practicing PTs and OTs; Demo Day rig.</td><td>Live demo a judge can try</td></tr>
+      </tbody>
+    </table>
+    <table style="margin-top:28px">
+      <thead><tr><th>Budget</th><th></th><th style="text-align:right">USD</th></tr></thead>
+      <tbody>
+        <tr><td>Actuators, arm structure, cuff</td><td>two units: one for development, one for the demo</td><td class="num">4,200</td></tr>
+        <tr><td>Force/torque sensing and electronics</td><td>load cells, motor drivers, e-stop</td><td class="num">1,800</td></tr>
+        <tr><td>Compute</td><td>GPU time for policy training</td><td class="num">800</td></tr>
+        <tr><td>Clinician time</td><td>paid feedback sessions with therapists</td><td class="num">1,200</td></tr>
+        <tr><td>Fabrication and spares</td><td>3D printing, fasteners, replacement servos</td><td class="num">1,000</td></tr>
+        <tr><td>Demo Day</td><td>shipping the rig to NYC</td><td class="num">1,000</td></tr>
+      </tbody>
+      <tfoot><tr><td>Total</td><td></td><td class="num">10,000</td></tr></tfoot>
+    </table>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">Two-minute overview</div><h2>The idea, narrated</h2></div>
+    <p>A short walkthrough of the problem, the teach-and-replay loop, and the plan.</p>
+  </div>
+  <div class="video"><video id="vid" controls preload="metadata" playsinline src="understudy-overview.mp4"></video></div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="label">Safety</div><h2>Designed to be safe to hold</h2></div>
+    <p>The robot is low-force and backdrivable, so a patient or therapist can always overpower it. Force is capped in hardware and software, assistance only pushes toward the taught path, and any unexpected resistance stops motion. Home use starts with exercises the therapist has taught and approved in clinic.</p>
+  </div>
+  <div class="sources">
+    <div class="label">Sources</div>
+    <ol>
+      <li><a href="https://pubmed.ncbi.nlm.nih.gov/19801058/">Lang CE et al. Observation of amounts of movement practice provided during stroke rehabilitation. Arch Phys Med Rehabil. 2009.</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4017845/">Masiero S et al. Robotic upper limb rehabilitation after acute stroke by NeReBot: evaluation of treatment costs.</a></li>
+      <li><a href="https://www.forcetherapeutics.com/blog/cms-updates-remote-therapeutic-monitoring-rtm-codes-in-the-2026-physician-fee-schedule">CMS updates to remote therapeutic monitoring codes in the 2026 Physician Fee Schedule.</a></li>
+      <li><a href="https://www.stroke.org/en/about-stroke">American Stroke Association: about stroke.</a></li>
+    </ol>
+  </div>
+</div></section>
+
+<div class="wrap"><footer>Understudy · application for Build @ Deerfield 2026–27, Robotics and Movement track.</footer></div>
+
+<script src="sim.js"></script>
+<script>
+(function () {
+  var share = document.getElementById("share"), err = document.getElementById("err");
+  var sim = window.UnderstudySim.create(document.getElementById("sim"), {
+    strength: 0.35,
+    onMetrics: function (m) {
+      share.textContent = m.mode === "replay" ? Math.round(m.assist * 100) + "%" : "teaching";
+      err.textContent = m.mode === "replay" ? m.errorCm.toFixed(1) + " cm" : "–";
+    }
+  });
+  var s = document.getElementById("strength"), sv = document.getElementById("sv");
+  s.addEventListener("input", function () { sv.textContent = s.value + "%"; sim.setStrength(s.value / 100); });
+  var a = document.getElementById("assist");
+  a.addEventListener("click", function () {
+    var on = a.getAttribute("aria-pressed") !== "true";
+    a.setAttribute("aria-pressed", String(on)); a.textContent = on ? "Robot assist on" : "Robot assist off"; sim.setAssist(on);
+  });
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) sim.setStrength(0.35);
+})();
+</script>
+</body>
+</html>
